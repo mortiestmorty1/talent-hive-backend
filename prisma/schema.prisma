@@ -1,0 +1,281 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum Complexity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  IN_PROGRESS
+}
+
+enum JobStatus {
+  OPEN
+  IN_PROGRESS
+  PENDING_COMPLETION
+  COMPLETED
+  CANCELLED
+}
+
+enum OrderStatus {
+  IN_PROGRESS
+  PENDING_COMPLETION
+  COMPLETED
+}
+
+enum DisputeStatus {
+  OPENED
+  UNDER_REVIEW
+  MEDIATION
+  RESOLVED
+  CLOSED
+}
+
+model User {
+  id               String     @id @default(auto()) @map("_id") @db.ObjectId
+  email            String     @unique
+  password         String
+  username         String?    @unique
+  fullName         String?
+  description      String?
+  profileImage     String?
+  isProfileInfoSet Boolean?   @default(false)
+  isMediator       Boolean?   @default(false)
+  createdAt        DateTime   @default(now())
+  gigs             Gig[]
+  orders           Order[]
+  reviews          Reviews[]
+  messagesSent     Messages[] @relation("sentMessages")
+  messagesReceived Messages[] @relation("receivedMessages")
+  skills           UserSkill[]
+  certifications   Certification[]
+  portfolio        PortfolioItem[]
+  jobPostings      JobPosting[]
+  applications     Application[]
+  disputesInitiated Dispute[] @relation("initiatedDisputes")
+  disputesMediated  Dispute[] @relation("mediatedDisputes")
+  disputeMessages  DisputeMessage[]
+  clientJobOrders   JobOrder[] @relation("clientJobOrders")
+  freelancerJobOrders JobOrder[] @relation("freelancerJobOrders")
+}
+
+type Certification {
+  name        String
+  issuer      String?
+  issueDate   DateTime?
+  expiryDate  DateTime?
+  credentialId String?
+  credentialUrl String?
+}
+
+type UserSkill {
+  skillName         String
+  level             SkillLevel
+  yearsOfExperience Int?
+  certifications    Certification[]
+}
+
+type PortfolioItem {
+  title         String
+  description   String?
+  imageUrls     String[]
+  projectUrl    String?
+  technologies  String[]
+  createdAt     DateTime @default(now())
+}
+
+model JobPosting {
+  id             String      @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt      DateTime    @default(now())
+  title          String
+  description    String
+  requiredSkills String[]
+  budget         Float
+  timeline       String
+  complexity     Complexity
+  status         JobStatus   @default(OPEN)
+  progress       Int         @default(0) // 0-100 percentage
+  acceptedFreelancerId String? @db.ObjectId
+  client         User        @relation(fields: [clientId], references: [id])
+  clientId       String      @db.ObjectId
+  applications   Application[]
+  reviews        Reviews[]
+  jobOrders      JobOrder[]
+  milestones     JobMilestone[]
+  messages       Messages[]
+}
+
+model Application {
+  id           String            @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt    DateTime          @default(now())
+  job          JobPosting        @relation(fields: [jobId], references: [id])
+  jobId        String            @db.ObjectId
+  freelancer   User              @relation(fields: [freelancerId], references: [id])
+  freelancerId String            @db.ObjectId
+  proposal     String
+  bidAmount    Float
+  timeline     String
+  status       ApplicationStatus @default(PENDING)
+  jobOrders    JobOrder[]
+}
+
+model Gig {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  description  String
+  category     String
+  deliveryTime Int
+  revisions    Int
+  features     String[]
+  price        Float
+  shortDesc    String
+  createdAt    DateTime  @default(now())
+  images       String[]
+  createdBy    User?     @relation(fields: [userId], references: [id])
+  userId       String    @db.ObjectId
+  orders       Order[]
+  reviews      Reviews[]
+  milestones   GigMilestone[]
+}
+
+model Order {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt     DateTime    @default(now())
+  buyer         User        @relation(fields: [buyerId], references: [id])
+  buyerId       String      @db.ObjectId
+  paymentIntent String      @unique
+  status        OrderStatus @default(IN_PROGRESS)
+  isCompleted   Boolean     @default(false)
+  gig           Gig         @relation(fields: [gigId], references: [id])
+  gigId         String      @db.ObjectId
+  price         Int
+  messages      Messages[]
+  disputes      Dispute[]
+  milestones    GigMilestone[]
+}
+
+model Reviews {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt  DateTime @default(now())
+  rating     Int
+  skillSpecificRating Int?
+  communicationRating Int?
+  timelinessRating    Int?
+  qualityRating       Int?
+  overallRating       Int?
+  skillCategory       String?
+  verifiedPurchase    Boolean? @default(false)
+  comment    String?
+  gig        Gig?     @relation(fields: [gigId], references: [id])
+  gigId      String?  @db.ObjectId
+  job        JobPosting? @relation(fields: [jobId], references: [id])
+  jobId      String?  @db.ObjectId
+  reviewer   User     @relation(fields: [reviewerId], references: [id])
+  reviewerId String   @db.ObjectId
+}
+
+model Messages {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  text       String
+  createdAt  DateTime @default(now())
+  isRead     Boolean  @default(false)
+  sender     User     @relation("sentMessages", fields: [senderId], references: [id])
+  senderId   String   @db.ObjectId
+  receiver   User     @relation("receivedMessages", fields: [receiverId], references: [id])
+  receiverId String   @db.ObjectId
+  order      Order?   @relation(fields: [orderId], references: [id])
+  orderId    String?  @db.ObjectId
+  job        JobPosting? @relation(fields: [jobId], references: [id])
+  jobId      String?  @db.ObjectId
+}
+
+model Dispute {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt    DateTime      @default(now())
+  order        Order         @relation(fields: [orderId], references: [id])
+  orderId      String        @db.ObjectId
+  initiator    User          @relation("initiatedDisputes", fields: [initiatorId], references: [id])
+  initiatorId  String        @db.ObjectId
+  reason       String
+  description  String?
+  evidence     String[]
+  status       DisputeStatus @default(OPENED)
+  mediator     User?         @relation("mediatedDisputes", fields: [mediatorId], references: [id])
+  mediatorId   String?       @db.ObjectId
+  resolution   String?
+  messages     DisputeMessage[]
+}
+
+model DisputeMessage {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  text       String
+  createdAt  DateTime @default(now())
+  sender     User     @relation(fields: [senderId], references: [id])
+  senderId   String   @db.ObjectId
+  dispute    Dispute  @relation(fields: [disputeId], references: [id])
+  disputeId  String   @db.ObjectId
+}
+
+model JobOrder {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  jobId         String   @db.ObjectId
+  applicationId String   @db.ObjectId
+  clientId      String   @db.ObjectId
+  freelancerId  String   @db.ObjectId
+  amount        Float
+  paymentIntent String
+  status        String   @default("PENDING") // PENDING, PAID, COMPLETED, CANCELLED
+  paidAt        DateTime?
+  createdAt     DateTime @default(now())
+  
+  job         JobPosting  @relation(fields: [jobId], references: [id])
+  application Application @relation(fields: [applicationId], references: [id])
+  client      User        @relation("clientJobOrders", fields: [clientId], references: [id])
+  freelancer  User        @relation("freelancerJobOrders", fields: [freelancerId], references: [id])
+}
+
+model JobMilestone {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  jobId       String     @db.ObjectId
+  title       String
+  description String
+  progress    Int        @default(0) // 0-100 percentage
+  status      String     @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  job         JobPosting @relation(fields: [jobId], references: [id])
+}
+
+model GigMilestone {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  gigId       String     @db.ObjectId
+  orderId     String     @db.ObjectId
+  title       String
+  description String
+  progress    Int        @default(0) // 0-100 percentage
+  status      String     @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  gig         Gig        @relation(fields: [gigId], references: [id])
+  order       Order      @relation(fields: [orderId], references: [id])
+}

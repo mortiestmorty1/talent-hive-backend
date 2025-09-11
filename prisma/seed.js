@@ -96,6 +96,24 @@ async function createGigsAndOrders(users) {
   const gigs = [];
   const orders = [];
 
+  // Define image mappings for different categories
+  const categoryImages = {
+    'Web Development': ['service1.png', 'service2.jpeg', 'service3.jpeg', 'business.png'],
+    'Graphic Design': ['service4.jpeg', 'service5.jpeg', 'service6.jpeg', 'demo.webp'],
+    'Writing & Translation': ['service7.jpeg', 'service8.jpeg', 'everything.jpg'],
+    'Digital Marketing': ['service1.png', 'service2.jpeg', 'service3.jpeg', 'business.png'],
+    'Video & Animation': ['service4.jpeg', 'service5.jpeg', 'demo.webp'],
+    'Data': ['service6.jpeg', 'service7.jpeg', 'service8.jpeg'],
+    'Music & Audio': ['service1.png', 'service2.jpeg', 'service3.jpeg'],
+    'Programming & Tech': ['service4.jpeg', 'service5.jpeg', 'service6.jpeg', 'Pokedex.png', 'nextportfolio.png']
+  };
+
+  const getRandomImages = (category, count = 2) => {
+    const images = categoryImages[category] || categoryImages['Web Development'];
+    const shuffled = shuffleArray([...images]);
+    return shuffled.slice(0, Math.min(count, images.length));
+  };
+
   // Create realistic gigs with varied content
   const gigTemplates = [
     // Web Development
@@ -163,7 +181,7 @@ async function createGigsAndOrders(users) {
           features: ['Premium Quality', 'Fast Delivery', '24/7 Support', 'Unlimited Revisions'].slice(0, rand(2, 4)),
           price: rand(priceRange[0], priceRange[1]),
           shortDesc: gigTemplate.shortDesc,
-          images: [],
+          images: getRandomImages(gigTemplate.category, rand(1, 3)),
           createdBy: { connect: { id: seller.id } },
         },
       });
@@ -189,7 +207,7 @@ async function createGigsAndOrders(users) {
         features: ['Premium Quality', 'Express Delivery', 'Priority Support', 'Unlimited Revisions', 'Money Back Guarantee'].slice(0, rand(3, 5)),
         price: rand(Math.floor(priceRange[1] * 0.8), Math.floor(priceRange[1] * 1.5)),
         shortDesc: template.shortDesc + " - Premium Service",
-        images: [],
+        images: getRandomImages(template.category, rand(2, 4)),
         createdBy: { connect: { id: seller.id } },
       },
     });
@@ -310,6 +328,9 @@ async function main() {
   await prisma.jobPosting.deleteMany({});
   await prisma.disputeMessage.deleteMany({});
   await prisma.dispute.deleteMany({});
+  await prisma.gigMilestone.deleteMany({});
+  await prisma.jobMilestone.deleteMany({});
+  await prisma.jobOrder.deleteMany({});
   await prisma.order.deleteMany({});
   await prisma.gig.deleteMany({});
   await prisma.user.deleteMany({});

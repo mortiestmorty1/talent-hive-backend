@@ -141,11 +141,14 @@ export const browseAllJobs = async (req, res) => {
   try {
     const { category, complexity, minBudget, maxBudget, timeline } = req.query;
     
-    let whereCondition = {
-      clientId: {
-        not: req.userId // Exclude user's own jobs
-      }
-    };
+    let whereCondition = {};
+    
+    // Only exclude user's own jobs if they are logged in
+    if (req.userId) {
+      whereCondition.clientId = {
+        not: req.userId
+      };
+    }
 
     // Add category filter
     if (category && category !== 'all') {
@@ -226,11 +229,14 @@ export const searchJobs = async (req, res) => {
       return res.status(400).send("At least one search parameter is required.");
     }
 
-    let whereCondition = {
-      clientId: {
-        not: req.userId // Exclude user's own jobs
-      }
-    };
+    let whereCondition = {};
+    
+    // Only exclude user's own jobs if they are logged in
+    if (req.userId) {
+      whereCondition.clientId = {
+        not: req.userId
+      };
+    }
 
     // Add search conditions
     const orConditions = [];

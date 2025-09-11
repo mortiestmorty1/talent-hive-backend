@@ -29,8 +29,8 @@ export const jobRoutes = Router();
 // Static routes first (more specific)
 jobRoutes.post("/create", verifyToken, createJob);
 jobRoutes.post("/apply", verifyToken, applyToJob);
-jobRoutes.get("/browse", verifyToken, browseAllJobs);
-jobRoutes.get("/search", verifyToken, searchJobs);
+jobRoutes.get("/browse", browseAllJobs); // Public route - no auth required
+jobRoutes.get("/search", searchJobs); // Public route - no auth required
 jobRoutes.get("/client", verifyToken, listClientJobs);
 jobRoutes.get("/orders/client", verifyToken, getClientJobOrders);
 jobRoutes.get("/orders/freelancer", verifyToken, getFreelancerJobOrders);
@@ -41,7 +41,7 @@ jobRoutes.put("/applications/:applicationId", verifyToken, updateApplicationStat
 jobRoutes.put("/milestones/:milestoneId", verifyToken, updateMilestoneStatus);
 
 // GET routes with specific paths
-jobRoutes.get("/get/:jobId", verifyToken, getJobById);
+jobRoutes.get("/get/:jobId", getJobById); // Public route - no auth required
 jobRoutes.get("/matches/:jobId", verifyToken, getJobTopMatches);
 
 // Dynamic routes last (less specific)

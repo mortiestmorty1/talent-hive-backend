@@ -222,6 +222,47 @@ export const updateGig = async (req, res, next) => {
   }
 };
 
+export const getAllGigs = async (req, res, next) => {
+  try {
+    let whereCondition = {};
+    
+    // Only exclude user's own gigs if they are logged in
+    if (req.userId) {
+      whereCondition.createdBy = {
+        id: {
+          not: req.userId
+        }
+      };
+    }
+
+    const gigs = await prisma.gig.findMany({
+      where: whereCondition,
+      orderBy: {
+        createdAt: 'desc'
+      },
+      include: {
+        createdBy: true,
+        reviews: {
+          include: {
+            reviewer: true,
+          },
+        },
+      },
+    });
+
+    // Process images for each gig to ensure there's always at least one
+    const processedGigs = gigs.map(gig => ({
+      ...gig,
+      images: processGigImages(gig.images, gig.category)
+    }));
+
+    return res.status(200).json({ gigs: processedGigs });
+  } catch (error) {
+    console.error("Error in getAllGigs:", error);
+    return res.status(500).send("Internal Server Error");
+  }
+};
+
 export const searchGigs = async (req, res, next) => {
   try {
     const { searchTerm, category, deliveryTime, minPrice, maxPrice } = req.query;

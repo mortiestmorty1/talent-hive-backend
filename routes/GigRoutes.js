@@ -1,6 +1,7 @@
 import {
   addGig,
   getAllUserGigs,
+  getAllGigs,
   getGigById,
   searchGigs,
   updateGig,
@@ -16,6 +17,7 @@ export const gigRoutes = Router();
 const upload = multer({ dest: "uploads/" });
 
 gigRoutes.post("/add", verifyToken, upload.array("images"), addGig);
+gigRoutes.get("/all", getAllGigs); // Public route - no auth required - gets all gigs without filters
 gigRoutes.get("/", verifyToken, getAllUserGigs);
 gigRoutes.get("/get/:gigId", getGigById);
 gigRoutes.put("/edit/:gigId", verifyToken, upload.array("images"), updateGig);

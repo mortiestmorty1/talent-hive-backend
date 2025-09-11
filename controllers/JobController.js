@@ -141,7 +141,10 @@ export const browseAllJobs = async (req, res) => {
   try {
     const { category, complexity, minBudget, maxBudget, timeline } = req.query;
     
-    let whereCondition = {};
+    let whereCondition = {
+      // Only show OPEN jobs (not in progress, completed, etc.)
+      status: 'OPEN'
+    };
     
     // Only exclude user's own jobs if they are logged in
     if (req.userId) {
@@ -225,6 +228,9 @@ export const getAllJobs = async (req, res) => {
   try {
     let whereCondition = {};
     
+    // Only show OPEN jobs (not in progress, completed, etc.)
+    whereCondition.status = 'OPEN';
+    
     // Only exclude user's own jobs if they are logged in
     if (req.userId) {
       whereCondition.clientId = {
@@ -262,7 +268,10 @@ export const searchJobs = async (req, res) => {
       return res.status(400).send("At least one search parameter is required.");
     }
 
-    let whereCondition = {};
+    let whereCondition = {
+      // Only show OPEN jobs (not in progress, completed, etc.)
+      status: 'OPEN'
+    };
     
     // Only exclude user's own jobs if they are logged in
     if (req.userId) {

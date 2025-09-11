@@ -221,6 +221,39 @@ export const browseAllJobs = async (req, res) => {
   }
 };
 
+export const getAllJobs = async (req, res) => {
+  try {
+    let whereCondition = {};
+    
+    // Only exclude user's own jobs if they are logged in
+    if (req.userId) {
+      whereCondition.clientId = {
+        not: req.userId
+      };
+    }
+
+    const jobs = await prisma.jobPosting.findMany({
+      where: whereCondition,
+      orderBy: {
+        createdAt: 'desc'
+      },
+      include: {
+        client: {
+          select: {
+            fullName: true,
+            username: true
+          }
+        }
+      }
+    });
+    
+    return res.status(200).json({ jobs });
+  } catch (error) {
+    console.error("Error in getAllJobs:", error);
+    return res.status(500).send("Internal Server Error");
+  }
+};
+
 export const searchJobs = async (req, res) => {
   try {
     const { searchTerm, category, complexity, minBudget, maxBudget, timeline } = req.query;

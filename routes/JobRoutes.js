@@ -7,6 +7,7 @@ import {
   getJobById, 
   listClientJobs, 
   browseAllJobs, 
+  getAllJobs,
   searchJobs,
   getJobApplications,
   updateApplicationStatus,
@@ -29,6 +30,7 @@ export const jobRoutes = Router();
 // Static routes first (more specific)
 jobRoutes.post("/create", verifyToken, createJob);
 jobRoutes.post("/apply", verifyToken, applyToJob);
+jobRoutes.get("/all", getAllJobs); // Public route - no auth required - gets all jobs without filters
 jobRoutes.get("/browse", browseAllJobs); // Public route - no auth required
 jobRoutes.get("/search", searchJobs); // Public route - no auth required
 jobRoutes.get("/client", verifyToken, listClientJobs);

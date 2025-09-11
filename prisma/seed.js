@@ -108,10 +108,26 @@ async function createGigsAndOrders(users) {
     'Programming & Tech': ['service4.jpeg', 'service5.jpeg', 'service6.jpeg', 'Pokedex.png', 'nextportfolio.png']
   };
 
+  // Define default placeholder images for each category
+  const defaultImages = {
+    'Web Development': 'default-web-dev.png',
+    'Graphic Design': 'default-design.png',
+    'Writing & Translation': 'default-writing.png',
+    'Digital Marketing': 'default-marketing.png',
+    'Video & Animation': 'default-video.png',
+    'Data': 'default-data.png',
+    'Music & Audio': 'default-music.png',
+    'Programming & Tech': 'default-programming.png'
+  };
+
   const getRandomImages = (category, count = 2) => {
     const images = categoryImages[category] || categoryImages['Web Development'];
     const shuffled = shuffleArray([...images]);
     return shuffled.slice(0, Math.min(count, images.length));
+  };
+
+  const getDefaultImage = (category) => {
+    return defaultImages[category] || 'default-general.png';
   };
 
   // Create realistic gigs with varied content
@@ -171,6 +187,10 @@ async function createGigsAndOrders(users) {
       const priceRange = gigTemplate.price;
       const deliveryRange = gigTemplate.delivery;
       
+      // Sometimes create gigs without images to test fallback (30% chance)
+      const shouldHaveImages = Math.random() > 0.3;
+      const images = shouldHaveImages ? getRandomImages(gigTemplate.category, rand(1, 3)) : [];
+      
       const gig = await prisma.gig.create({
         data: {
           title: gigTemplate.title,
@@ -181,7 +201,7 @@ async function createGigsAndOrders(users) {
           features: ['Premium Quality', 'Fast Delivery', '24/7 Support', 'Unlimited Revisions'].slice(0, rand(2, 4)),
           price: rand(priceRange[0], priceRange[1]),
           shortDesc: gigTemplate.shortDesc,
-          images: getRandomImages(gigTemplate.category, rand(1, 3)),
+          images: images,
           createdBy: { connect: { id: seller.id } },
         },
       });

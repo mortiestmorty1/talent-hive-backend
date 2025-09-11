@@ -48,6 +48,9 @@ app.use("/uploads", express.static("uploads"));
 app.use("/uploads/disputes", express.static("uploads/disputes"));
 app.use("/uploads/portfolio", express.static("uploads/portfolio"));
 
+// Serve default placeholder images from client public folder
+app.use("/default-images", express.static("../client/public"));
+
 app.use(cookieParser());
 app.use(express.json());
 

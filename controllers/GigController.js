@@ -1,5 +1,6 @@
 import { existsSync, renameSync, unlinkSync } from "fs";
 import prisma from "../prisma/client.js";
+import { processGigImages } from "../utils/imageUtils.js";
 
 export const addGig = async (req, res, next) => {
   try {
@@ -9,9 +10,10 @@ export const addGig = async (req, res, next) => {
     console.log("Query params:", req.query);
     console.log("Body:", req.body);
 
+    let fileNames = [];
+    
+    // Handle uploaded files if any
     if (req.files && req.files.length > 0) {
-      const fileNames = [];
-      
       // Handle array of files from upload.array("images")
       req.files.forEach((file) => {
         const date = Date.now();
@@ -19,22 +21,40 @@ export const addGig = async (req, res, next) => {
         renameSync(file.path, "uploads/" + newFileName);
         fileNames.push(newFileName);
       });
+    }
 
-      console.log("File names:", fileNames);
+    console.log("File names:", fileNames);
 
-      if (req.query) {
-        const {
-          title,
-          description,
-          category,
-          features,
-          price,
-          revisions,
-          time,
-          shortDesc,
-        } = req.query;
+    if (req.query) {
+      const {
+        title,
+        description,
+        category,
+        features,
+        price,
+        revisions,
+        time,
+        shortDesc,
+      } = req.query;
 
-        console.log("Creating gig with data:", {
+      // Process images to ensure there's always at least one (using default if none uploaded)
+      const processedImages = processGigImages(fileNames, category);
+
+      console.log("Creating gig with data:", {
+        title,
+        description,
+        deliveryTime: parseInt(time),
+        category,
+        features,
+        price: parseInt(price),
+        shortDesc,
+        revisions: parseInt(revisions),
+        userId: req.userId,
+        images: processedImages,
+      });
+
+      const gig = await prisma.gig.create({
+        data: {
           title,
           description,
           deliveryTime: parseInt(time),
@@ -43,32 +63,17 @@ export const addGig = async (req, res, next) => {
           price: parseInt(price),
           shortDesc,
           revisions: parseInt(revisions),
-          userId: req.userId,
-          images: fileNames,
-        });
+          createdBy: { connect: { id: req.userId } },
+          images: processedImages,
+        },
+      });
 
-        const gig = await prisma.gig.create({
-          data: {
-            title,
-            description,
-            deliveryTime: parseInt(time),
-            category,
-            features,
-            price: parseInt(price),
-            shortDesc,
-            revisions: parseInt(revisions),
-            createdBy: { connect: { id: req.userId } },
-            images: fileNames,
-          },
-        });
-
-        console.log("Gig created successfully:", gig.id);
-        console.log("=== ADD GIG DEBUG END ===");
-        return res.status(201).json({ message: "Successfully created the gig.", gigId: gig.id });
-      }
+      console.log("Gig created successfully:", gig.id);
+      console.log("=== ADD GIG DEBUG END ===");
+      return res.status(201).json({ message: "Successfully created the gig.", gigId: gig.id });
     }
     
-    console.log("Missing files or query params");
+    console.log("Missing query params");
     console.log("=== ADD GIG DEBUG END ===");
     return res.status(400).send("All properties are required.");
   } catch (err) {
@@ -85,7 +90,14 @@ export const getAllUserGigs = async (req, res, next) => {
         where: { id: req.userId },
         include: { gigs: true },
       });
-      return res.status(200).json({ gigs: user?.gigs ?? [] });
+      
+      // Process images for each gig to ensure there's always at least one
+      const processedGigs = (user?.gigs ?? []).map(gig => ({
+        ...gig,
+        images: processGigImages(gig.images, gig.category)
+      }));
+      
+      return res.status(200).json({ gigs: processedGigs });
     }
     return res.status(400).send("UserId should be required.");
   } catch (err) {
@@ -130,9 +142,17 @@ export const getGigById = async (req, res, next) => {
             ).toFixed(1)
           : "N/A";
 
+      // Process images to ensure there's always at least one
+      const processedGig = {
+        ...gig,
+        images: processGigImages(gig.images, gig.category),
+        totalReviews,
+        averageRating
+      };
+
       return res
         .status(200)
-        .json({ gig: { ...gig, totalReviews, averageRating } });
+        .json({ gig: processedGig });
     }
     return res.status(400).send("GigId is required.");
   } catch (err) {
@@ -215,7 +235,13 @@ export const searchGigs = async (req, res, next) => {
       createSearchQuery(searchTermLower, category, deliveryTime, minPrice, maxPrice, req.userId)
     );
 
-    return res.status(200).json({ gigs });
+    // Process images for each gig to ensure there's always at least one
+    const processedGigs = gigs.map(gig => ({
+      ...gig,
+      images: processGigImages(gig.images, gig.category)
+    }));
+
+    return res.status(200).json({ gigs: processedGigs });
   } catch (err) {
     console.log(err);
     return res.status(500).send("Internal Server Error.");

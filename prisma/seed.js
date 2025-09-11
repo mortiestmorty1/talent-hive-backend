@@ -289,15 +289,140 @@ async function createJobsAndApplications(users) {
   const freelancers = users.filter((u) => u.username?.startsWith('seller'));
   const jobs = [];
 
-  for (let i = 1; i <= 5; i++) {
+  // Define diverse job templates
+  const jobTemplates = [
+    {
+      title: "E-commerce Website Development",
+      description: "Need a full-stack developer to build a modern e-commerce platform with payment integration, user authentication, and admin dashboard. Should be responsive and SEO optimized.",
+      requiredSkills: ["React", "Node.js", "MongoDB", "Stripe", "Tailwind CSS"],
+      budget: rand(1500, 3000),
+      timeline: "1-2 months",
+      complexity: "HIGH"
+    },
+    {
+      title: "Mobile App UI/UX Design",
+      description: "Looking for a talented UI/UX designer to create wireframes and designs for a fitness tracking mobile app. Need modern, clean design with excellent user experience.",
+      requiredSkills: ["Figma", "Adobe XD", "UI/UX", "Prototyping", "Mobile Design"],
+      budget: rand(800, 1500),
+      timeline: "2-4 weeks",
+      complexity: "MEDIUM"
+    },
+    {
+      title: "WordPress Website Customization",
+      description: "Need help customizing an existing WordPress website. Tasks include theme modifications, plugin integration, and performance optimization.",
+      requiredSkills: ["WordPress", "PHP", "CSS", "JavaScript", "MySQL"],
+      budget: rand(300, 800),
+      timeline: "1-2 weeks",
+      complexity: "LOW"
+    },
+    {
+      title: "Data Analytics Dashboard",
+      description: "Build a comprehensive analytics dashboard to visualize business metrics. Should include charts, graphs, and real-time data updates.",
+      requiredSkills: ["Python", "React", "D3.js", "PostgreSQL", "Chart.js"],
+      budget: rand(1000, 2500),
+      timeline: "1-2 months",
+      complexity: "HIGH"
+    },
+    {
+      title: "API Development and Integration",
+      description: "Develop RESTful APIs and integrate with third-party services. Need proper documentation and error handling.",
+      requiredSkills: ["Node.js", "Express", "MongoDB", "JWT", "Postman"],
+      budget: rand(600, 1200),
+      timeline: "2-4 weeks",
+      complexity: "MEDIUM"
+    },
+    {
+      title: "Social Media Marketing Campaign",
+      description: "Create and manage a comprehensive social media marketing campaign for a new product launch. Need content creation and engagement strategies.",
+      requiredSkills: ["Social Media Marketing", "Content Creation", "Analytics", "Facebook Ads", "Instagram Marketing"],
+      budget: rand(500, 1000),
+      timeline: "1-2 months",
+      complexity: "MEDIUM"
+    },
+    {
+      title: "Machine Learning Model Development",
+      description: "Develop a machine learning model for predictive analytics. Need data preprocessing, model training, and deployment.",
+      requiredSkills: ["Python", "TensorFlow", "Pandas", "Scikit-learn", "Jupyter"],
+      budget: rand(2000, 4000),
+      timeline: "2-3 months",
+      complexity: "HIGH"
+    },
+    {
+      title: "Logo and Brand Identity Design",
+      description: "Create a complete brand identity including logo, business cards, letterhead, and brand guidelines for a tech startup.",
+      requiredSkills: ["Adobe Illustrator", "Photoshop", "Branding", "Logo Design", "Typography"],
+      budget: rand(400, 800),
+      timeline: "1-2 weeks",
+      complexity: "LOW"
+    },
+    {
+      title: "DevOps CI/CD Pipeline Setup",
+      description: "Set up automated deployment pipeline with Docker, Jenkins, and AWS. Need monitoring and logging integration.",
+      requiredSkills: ["Docker", "Jenkins", "AWS", "Linux", "Bash Scripting"],
+      budget: rand(800, 1500),
+      timeline: "2-4 weeks",
+      complexity: "MEDIUM"
+    },
+    {
+      title: "Content Management System",
+      description: "Build a custom CMS for a publishing company with multi-user support, content scheduling, and SEO features.",
+      requiredSkills: ["PHP", "MySQL", "JavaScript", "Bootstrap", "SEO"],
+      budget: rand(1200, 2000),
+      timeline: "1-2 months",
+      complexity: "HIGH"
+    },
+    {
+      title: "Video Editing and Animation",
+      description: "Create promotional videos and animations for a mobile app launch. Need professional quality with engaging visuals.",
+      requiredSkills: ["After Effects", "Premiere Pro", "Motion Graphics", "Video Editing", "Animation"],
+      budget: rand(600, 1200),
+      timeline: "2-4 weeks",
+      complexity: "MEDIUM"
+    },
+    {
+      title: "Database Migration and Optimization",
+      description: "Migrate existing database to cloud platform and optimize performance. Need backup strategies and monitoring.",
+      requiredSkills: ["MySQL", "PostgreSQL", "AWS RDS", "Database Optimization", "Backup Strategies"],
+      budget: rand(500, 1000),
+      timeline: "1-2 weeks",
+      complexity: "MEDIUM"
+    },
+    {
+      title: "Progressive Web App Development",
+      description: "Convert existing website to PWA with offline functionality, push notifications, and app-like experience.",
+      requiredSkills: ["React", "Service Workers", "PWA", "JavaScript", "Web APIs"],
+      budget: rand(800, 1500),
+      timeline: "2-4 weeks",
+      complexity: "MEDIUM"
+    },
+    {
+      title: "SEO Audit and Optimization",
+      description: "Perform comprehensive SEO audit and implement optimization strategies for better search rankings.",
+      requiredSkills: ["SEO", "Google Analytics", "Keyword Research", "Technical SEO", "Content Optimization"],
+      budget: rand(400, 800),
+      timeline: "1-2 weeks",
+      complexity: "LOW"
+    },
+    {
+      title: "Blockchain Smart Contract Development",
+      description: "Develop and deploy smart contracts for a DeFi application. Need security audits and testing.",
+      requiredSkills: ["Solidity", "Web3.js", "Ethereum", "Smart Contracts", "Truffle"],
+      budget: rand(2500, 5000),
+      timeline: "2-3 months",
+      complexity: "HIGH"
+    }
+  ];
+
+  // Create jobs from templates
+  for (const template of jobTemplates) {
     const job = await prisma.jobPosting.create({
       data: {
-        title: `Project ${i}: Build Feature`,
-        description: 'Looking for an expert to build a feature',
-        requiredSkills: ['React','Node.js','MongoDB'].slice(0, rand(1, 3)),
-        budget: rand(200, 2000),
-        timeline: pick(['1-2 weeks','2-4 weeks','1-2 months']),
-        complexity: pick(['LOW','MEDIUM','HIGH']),
+        title: template.title,
+        description: template.description,
+        requiredSkills: template.requiredSkills,
+        budget: template.budget,
+        timeline: template.timeline,
+        complexity: template.complexity,
         clientId: pick(clients).id,
       },
     });

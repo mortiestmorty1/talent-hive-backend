@@ -302,6 +302,27 @@ export const searchJobs = async (req, res) => {
       if (searchLower === 'mongodb') {
         skillVariations.push('MongoDB', 'MONGODB', 'mongo', 'Mongo');
       }
+      if (searchLower === 'python') {
+        skillVariations.push('Python', 'PYTHON');
+      }
+      if (searchLower === 'php') {
+        skillVariations.push('PHP', 'php');
+      }
+      if (searchLower === 'wordpress') {
+        skillVariations.push('WordPress', 'wordpress', 'WORDPRESS');
+      }
+      if (searchLower === 'design') {
+        skillVariations.push('UI/UX', 'Design', 'Figma', 'Adobe XD', 'Photoshop', 'Illustrator');
+      }
+      if (searchLower === 'marketing') {
+        skillVariations.push('Social Media Marketing', 'Marketing', 'SEO', 'Facebook Ads', 'Instagram Marketing');
+      }
+      if (searchLower === 'devops') {
+        skillVariations.push('DevOps', 'Docker', 'Jenkins', 'AWS', 'Linux');
+      }
+      if (searchLower === 'blockchain') {
+        skillVariations.push('Blockchain', 'Solidity', 'Ethereum', 'Smart Contracts', 'Web3.js');
+      }
       
       // Add semantic search mappings for broader terms
       if (searchLower === 'web development' || searchLower === 'web dev' || searchLower === 'web') {
@@ -319,7 +340,19 @@ export const searchJobs = async (req, res) => {
         );
       }
       if (searchLower === 'programming' || searchLower === 'coding' || searchLower === 'development') {
-        skillVariations.push('React', 'Node.js', 'JavaScript', 'Python', 'Java', 'C++', 'C#', 'PHP');
+        skillVariations.push('React', 'Node.js', 'JavaScript', 'Python', 'Java', 'C++', 'C#', 'PHP', 'MongoDB', 'MySQL');
+      }
+      if (searchLower === 'design' || searchLower === 'ui' || searchLower === 'ux') {
+        skillVariations.push('UI/UX', 'Figma', 'Adobe XD', 'Photoshop', 'Illustrator', 'Design', 'Prototyping');
+      }
+      if (searchLower === 'marketing' || searchLower === 'seo' || searchLower === 'social media') {
+        skillVariations.push('Social Media Marketing', 'SEO', 'Facebook Ads', 'Instagram Marketing', 'Content Creation', 'Analytics');
+      }
+      if (searchLower === 'data science' || searchLower === 'machine learning' || searchLower === 'ai') {
+        skillVariations.push('Python', 'TensorFlow', 'Pandas', 'Scikit-learn', 'Machine Learning', 'Data Analytics', 'Jupyter');
+      }
+      if (searchLower === 'mobile app' || searchLower === 'mobile development') {
+        skillVariations.push('React Native', 'Flutter', 'iOS', 'Android', 'Mobile Development', 'Mobile Design');
       }
       
       // Add each variation as a separate condition

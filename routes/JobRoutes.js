@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { verifyToken } from "../middlewares/AuthMiddleware.js";
+import { verifyToken, optionalAuth, requireAuthForAction } from "../middlewares/AuthMiddleware.js";
 import { 
   createJob, 
   applyToJob, 
@@ -30,9 +30,9 @@ export const jobRoutes = Router();
 // Static routes first (more specific)
 jobRoutes.post("/create", verifyToken, createJob);
 jobRoutes.post("/apply", verifyToken, applyToJob);
-jobRoutes.get("/all", getAllJobs); // Public route - no auth required - gets all jobs without filters
-jobRoutes.get("/browse", browseAllJobs); // Public route - no auth required
-jobRoutes.get("/search", searchJobs); // Public route - no auth required
+jobRoutes.get("/all", optionalAuth, getAllJobs); // Public route with optional auth - gets all jobs without filters
+jobRoutes.get("/browse", optionalAuth, browseAllJobs); // Public route with optional auth
+jobRoutes.get("/search", optionalAuth, searchJobs); // Public route with optional auth
 jobRoutes.get("/client", verifyToken, listClientJobs);
 jobRoutes.get("/orders/client", verifyToken, getClientJobOrders);
 jobRoutes.get("/orders/freelancer", verifyToken, getFreelancerJobOrders);
@@ -43,7 +43,7 @@ jobRoutes.put("/applications/:applicationId", verifyToken, updateApplicationStat
 jobRoutes.put("/milestones/:milestoneId", verifyToken, updateMilestoneStatus);
 
 // GET routes with specific paths
-jobRoutes.get("/get/:jobId", getJobById); // Public route - no auth required
+jobRoutes.get("/get/:jobId", optionalAuth, getJobById); // Public route with optional auth
 jobRoutes.get("/matches/:jobId", verifyToken, getJobTopMatches);
 
 // Dynamic routes last (less specific)

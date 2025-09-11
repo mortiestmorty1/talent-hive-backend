@@ -11,6 +11,7 @@ import { dashboardRoutes } from "./routes/DashboardRoutes.js";
 import { jobRoutes } from "./routes/JobRoutes.js";
 import { messageRoutes } from "./routes/MessagesRoutes.js";
 import disputeRoutes from "./routes/DisputeRoutes.js";
+import { categoryRoutes } from "./routes/CategoryRoutes.js";
 
 dotenv.config();
 console.log("DATABASE_URL:", process.env.DATABASE_URL);
@@ -62,6 +63,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/disputes", disputeRoutes);
 app.use("/api/jobs", jobRoutes);
+app.use("/api/categories", categoryRoutes);
 
 app.listen(port, () => {
   console.log(`Server is listening at url: http://localhost:${port}`);

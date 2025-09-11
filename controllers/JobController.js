@@ -1,5 +1,12 @@
 import prisma from "../prisma/client.js";
 import { getTopMatches } from "../services/MatchingService.js";
+import { 
+  JOB_CATEGORIES, 
+  COMPLEXITY_LEVELS, 
+  TIMELINE_OPTIONS, 
+  CATEGORY_KEYWORDS, 
+  findCategoryFromKeywords 
+} from "../utils/categories.js";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -153,13 +160,29 @@ export const browseAllJobs = async (req, res) => {
       };
     }
 
-    // Add category filter
+    // Add category filter with improved logic
     if (category && category !== 'all') {
-      whereCondition.OR = [
-        { title: { contains: category, mode: 'insensitive' } },
-        { description: { contains: category, mode: 'insensitive' } },
-        { requiredSkills: { hasSome: [category] } }
-      ];
+      const categoryLower = category.toLowerCase();
+      const categoryKeywords = CATEGORY_KEYWORDS[category] || [category];
+      
+      const categoryConditions = [];
+      
+      // Search in title and description
+      categoryConditions.push(
+        { title: { contains: categoryLower, mode: 'insensitive' } },
+        { description: { contains: categoryLower, mode: 'insensitive' } }
+      );
+      
+      // Search for category keywords in title, description, and skills
+      categoryKeywords.forEach(keyword => {
+        categoryConditions.push(
+          { title: { contains: keyword, mode: 'insensitive' } },
+          { description: { contains: keyword, mode: 'insensitive' } },
+          { requiredSkills: { hasSome: [keyword] } }
+        );
+      });
+      
+      whereCondition.OR = categoryConditions;
     }
 
     // Add complexity filter

@@ -1,6 +1,12 @@
 import { existsSync, renameSync, unlinkSync } from "fs";
 import prisma from "../prisma/client.js";
 import { processGigImages } from "../utils/imageUtils.js";
+import { 
+  GIG_CATEGORIES, 
+  DELIVERY_TIME_OPTIONS, 
+  CATEGORY_KEYWORDS, 
+  findCategoryFromKeywords 
+} from "../utils/categories.js";
 
 export const addGig = async (req, res, next) => {
   try {
@@ -326,19 +332,56 @@ const createSearchQuery = (searchTerm, category, deliveryTime, minPrice, maxPric
     });
   }
 
-  // Add category filter
+  // Add category filter with improved logic
   if (category && category !== 'all') {
+    const categoryLower = category.toLowerCase();
+    const categoryKeywords = CATEGORY_KEYWORDS[category] || [category];
+    
+    // Search for exact category match
     query.where.OR.push({
-      category: { contains: category, mode: "insensitive" },
+      category: { contains: categoryLower, mode: "insensitive" },
+    });
+    
+    // Search for category keywords in title, description, and features
+    categoryKeywords.forEach(keyword => {
+      query.where.OR.push(
+        { title: { contains: keyword, mode: "insensitive" } },
+        { description: { contains: keyword, mode: "insensitive" } },
+        { features: { hasSome: [keyword] } }
+      );
     });
   }
 
-  // Add delivery time filter
+  // Add delivery time filter with improved logic
   if (deliveryTime && deliveryTime !== 'all') {
     const days = Number(deliveryTime);
-    query.where.AND.push({
-      deliveryTime: { lte: days }
-    });
+    
+    if (days === 1) {
+      // Less than 1 day
+      query.where.AND.push({
+        deliveryTime: { lte: 1 }
+      });
+    } else if (days <= 7) {
+      // Up to 1 week
+      query.where.AND.push({
+        deliveryTime: { lte: 7 }
+      });
+    } else if (days <= 14) {
+      // Up to 2 weeks
+      query.where.AND.push({
+        deliveryTime: { lte: 14 }
+      });
+    } else if (days <= 30) {
+      // Up to 1 month
+      query.where.AND.push({
+        deliveryTime: { lte: 30 }
+      });
+    } else {
+      // More than 1 month
+      query.where.AND.push({
+        deliveryTime: { gt: 30 }
+      });
+    }
   }
 
   // Add price filters

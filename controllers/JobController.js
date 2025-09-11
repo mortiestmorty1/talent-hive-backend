@@ -214,7 +214,7 @@ export const browseAllJobs = async (req, res) => {
         }
       }
     });
-    return res.status(200).json(jobs);
+    return res.status(200).json({ jobs });
   } catch (error) {
     console.error("Error in browseAllJobs:", error);
     return res.status(500).send("Internal Server Error");

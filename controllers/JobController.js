@@ -270,6 +270,25 @@ export const searchJobs = async (req, res) => {
         skillVariations.push('MongoDB', 'MONGODB', 'mongo', 'Mongo');
       }
       
+      // Add semantic search mappings for broader terms
+      if (searchLower === 'web development' || searchLower === 'web dev' || searchLower === 'web') {
+        skillVariations.push('React', 'Node.js', 'JavaScript', 'HTML', 'CSS', 'Frontend', 'Backend', 'Full Stack');
+        // Also search in title and description for web-related terms
+        orConditions.push(
+          { title: { contains: 'web', mode: 'insensitive' } },
+          { title: { contains: 'frontend', mode: 'insensitive' } },
+          { title: { contains: 'backend', mode: 'insensitive' } },
+          { title: { contains: 'full stack', mode: 'insensitive' } },
+          { description: { contains: 'web', mode: 'insensitive' } },
+          { description: { contains: 'frontend', mode: 'insensitive' } },
+          { description: { contains: 'backend', mode: 'insensitive' } },
+          { description: { contains: 'full stack', mode: 'insensitive' } }
+        );
+      }
+      if (searchLower === 'programming' || searchLower === 'coding' || searchLower === 'development') {
+        skillVariations.push('React', 'Node.js', 'JavaScript', 'Python', 'Java', 'C++', 'C#', 'PHP');
+      }
+      
       // Add each variation as a separate condition
       skillVariations.forEach(variation => {
         orConditions.push({ requiredSkills: { hasSome: [variation] } });

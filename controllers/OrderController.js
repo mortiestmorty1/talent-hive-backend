@@ -1,6 +1,7 @@
 import prisma from "../prisma/client.js";
 import Stripe from "stripe";
 import dotenv from "dotenv";
+import socketService from "../services/SocketService.js";
 
 // Ensure environment variables are loaded
 dotenv.config();
@@ -567,6 +568,13 @@ export const updateOrderStatus = async (req, res) => {
 
     console.log("Order status updated:", updatedOrder.id, "to", status);
     console.log("=== UPDATE ORDER STATUS DEBUG END ===");
+
+    // Emit real-time update
+    socketService.emitOrderStatusChange(orderId, status, {
+      order: updatedOrder,
+      updatedBy: req.userId,
+      previousStatus: currentStatus
+    });
 
     const message = status === 'PENDING_COMPLETION' 
       ? "Order completion request submitted. Waiting for buyer approval."

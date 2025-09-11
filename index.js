@@ -12,6 +12,7 @@ import { jobRoutes } from "./routes/JobRoutes.js";
 import { messageRoutes } from "./routes/MessagesRoutes.js";
 import disputeRoutes from "./routes/DisputeRoutes.js";
 import { categoryRoutes } from "./routes/CategoryRoutes.js";
+import socketService from "./services/SocketService.js";
 
 dotenv.config();
 console.log("DATABASE_URL:", process.env.DATABASE_URL);
@@ -65,7 +66,10 @@ app.use("/api/disputes", disputeRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/categories", categoryRoutes);
 
-app.listen(port, () => {
+const server = app.listen(port, async () => {
   console.log(`Server is listening at url: http://localhost:${port}`);
+  
+  // Initialize WebSocket service
+  await socketService.initialize(server);
 });
 

@@ -7,6 +7,7 @@ import {
   CATEGORY_KEYWORDS, 
   findCategoryFromKeywords 
 } from "../utils/categories.js";
+import socketService from "../services/SocketService.js";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -597,6 +598,24 @@ export const updateApplicationStatus = async (req, res) => {
       }
     });
     
+    // Emit real-time update for job status change
+    if (status === 'ACCEPTED') {
+      socketService.emitJobStatusChange(application.jobId, 'IN_PROGRESS', {
+        jobId: application.jobId,
+        application: updatedApplication,
+        freelancer: application.freelancer,
+        updatedBy: req.userId
+      });
+    }
+    
+    // Emit application status update
+    socketService.emitJobUpdate(application.jobId, 'application_status_change', {
+      applicationId,
+      status,
+      freelancer: application.freelancer,
+      updatedBy: req.userId
+    });
+    
     return res.status(200).json(updatedApplication);
   } catch (error) {
     console.error("Error in updateApplicationStatus:", error);
@@ -1140,6 +1159,13 @@ export const updateJobStatus = async (req, res) => {
     console.log("Job status updated:", updatedJob.id, "to", status);
     console.log("=== UPDATE JOB STATUS DEBUG END ===");
 
+    // Emit real-time update for job status change
+    socketService.emitJobStatusChange(jobId, status, {
+      job: updatedJob,
+      updatedBy: req.userId,
+      previousStatus: job.status
+    });
+
     const message = status === 'PENDING_COMPLETION' 
       ? "Job completion request submitted. Waiting for buyer approval."
       : status === 'COMPLETED'
@@ -1191,7 +1217,7 @@ export const updateJobProgress = async (req, res) => {
 
     // Check if user is the freelancer working on this job
     const userApplication = job.applications.find(app => app.freelancerId === req.userId);
-    if (!userApplication || userApplication.status !== 'IN_PROGRESS') {
+    if (!userApplication || userApplication.status !== 'ACCEPTED') {
       return res.status(403).json({ error: "You can only update progress for jobs you're working on." });
     }
 
@@ -1211,6 +1237,13 @@ export const updateJobProgress = async (req, res) => {
 
     console.log("Job progress updated:", updatedJob.id, "to", progress);
     console.log("=== UPDATE JOB PROGRESS DEBUG END ===");
+
+    // Emit real-time update for job progress change
+    socketService.emitJobUpdate(jobId, 'progress_updated', {
+      job: updatedJob,
+      progress: progress,
+      updatedBy: req.userId
+    });
 
     return res.status(200).json({
       message: "Job progress updated successfully.",
@@ -1274,7 +1307,7 @@ export const addJobMilestone = async (req, res) => {
 
     // Check if user is the freelancer working on this job
     const userApplication = job.applications.find(app => app.freelancerId === req.userId);
-    if (!userApplication || userApplication.status !== 'IN_PROGRESS') {
+    if (!userApplication || userApplication.status !== 'ACCEPTED') {
       return res.status(403).json({ error: "You can only add milestones for jobs you're working on." });
     }
 
@@ -1290,6 +1323,13 @@ export const addJobMilestone = async (req, res) => {
 
     console.log("Milestone created:", milestone.id);
     console.log("=== ADD JOB MILESTONE DEBUG END ===");
+
+    // Emit real-time update for milestone creation
+    socketService.emitJobMilestoneUpdate(jobId, {
+      updateType: 'milestone_added',
+      milestone: milestone,
+      addedBy: req.userId
+    });
 
     return res.status(200).json({
       message: "Milestone added successfully.",
@@ -1341,7 +1381,7 @@ export const updateMilestoneStatus = async (req, res) => {
 
     // Determine user role
     const isClient = milestone.job.clientId === req.userId;
-    const isFreelancer = milestone.job.applications.some(app => app.freelancerId === req.userId && app.status === 'IN_PROGRESS');
+    const isFreelancer = milestone.job.applications.some(app => app.freelancerId === req.userId && app.status === 'ACCEPTED');
 
     if (!isClient && !isFreelancer) {
       return res.status(403).json({ error: "You can only update milestones for your own jobs." });
@@ -1386,6 +1426,14 @@ export const updateMilestoneStatus = async (req, res) => {
 
     console.log("Milestone status updated:", updatedMilestone.id, "to", status);
     console.log("=== UPDATE MILESTONE STATUS DEBUG END ===");
+
+    // Emit real-time update for milestone status change
+    socketService.emitJobMilestoneUpdate(milestone.jobId, {
+      updateType: 'milestone_status_updated',
+      milestone: updatedMilestone,
+      previousStatus: currentStatus,
+      updatedBy: req.userId
+    });
 
     return res.status(200).json({
       message: "Milestone status updated successfully.",

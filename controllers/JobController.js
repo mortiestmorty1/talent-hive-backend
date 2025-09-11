@@ -245,9 +245,35 @@ export const searchJobs = async (req, res) => {
       const searchLower = searchTerm.toLowerCase();
       orConditions.push(
         { title: { contains: searchLower, mode: 'insensitive' } },
-        { description: { contains: searchLower, mode: 'insensitive' } },
-        { requiredSkills: { hasSome: [searchTerm] } }
+        { description: { contains: searchLower, mode: 'insensitive' } }
       );
+      
+      // For skills, we'll search for exact matches and common variations
+      const skillVariations = [
+        searchTerm,
+        searchLower,
+        searchTerm.charAt(0).toUpperCase() + searchTerm.slice(1),
+        searchTerm.toUpperCase()
+      ];
+      
+      // Add common skill variations (e.g., "node" should match "Node.js")
+      if (searchLower === 'node') {
+        skillVariations.push('Node.js', 'node.js', 'NODE.JS');
+      }
+      if (searchLower === 'react') {
+        skillVariations.push('React', 'REACT');
+      }
+      if (searchLower === 'javascript') {
+        skillVariations.push('JavaScript', 'JAVASCRIPT', 'JS', 'js');
+      }
+      if (searchLower === 'mongodb') {
+        skillVariations.push('MongoDB', 'MONGODB', 'mongo', 'Mongo');
+      }
+      
+      // Add each variation as a separate condition
+      skillVariations.forEach(variation => {
+        orConditions.push({ requiredSkills: { hasSome: [variation] } });
+      });
     }
 
     if (category) {

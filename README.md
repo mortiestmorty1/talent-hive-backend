@@ -5,21 +5,24 @@ A robust Node.js backend API for TalentHive - a freelance marketplace platform b
 ## 🚀 Features
 
 - **User Authentication**: JWT-based authentication with bcrypt password hashing
-- **Database Management**: Prisma ORM with PostgreSQL
+- **Database Management**: Prisma ORM with MongoDB
 - **File Upload**: Multer-based file upload system
 - **Payment Processing**: Stripe integration for secure payments
-- **Real-time Messaging**: Built-in messaging system
-- **Order Management**: Complete order lifecycle management
+- **Real-time Communication**: Socket.io for instant messaging and updates
+- **Order Management**: Complete order lifecycle with status tracking
+- **Review System**: Verified purchase reviews with multi-criteria ratings
 - **Gig Management**: CRUD operations for freelance gigs
-- **Job Management**: Job posting and application system
-- **Dispute Resolution**: Built-in dispute handling system
+- **Job Management**: Job posting and application system with milestones
+- **Dispute Resolution**: Built-in dispute handling system with mediation
 - **CORS Support**: Configurable CORS for frontend integration
+- **Role-Based Access Control**: Separate permissions for buyers and sellers
 
 ## 🛠️ Tech Stack
 
 - **Runtime**: Node.js with ES Modules
 - **Framework**: Express.js
-- **Database**: PostgreSQL with Prisma ORM
+- **Database**: MongoDB with Prisma ORM
+- **Real-time**: Socket.io
 - **Authentication**: JWT with bcrypt
 - **File Upload**: Multer
 - **Payment**: Stripe
@@ -31,7 +34,7 @@ A robust Node.js backend API for TalentHive - a freelance marketplace platform b
 Before running this application, make sure you have:
 
 - Node.js (v16 or higher)
-- PostgreSQL database
+- MongoDB database
 - npm or yarn
 - Stripe account for payment processing
 
@@ -52,7 +55,7 @@ Before running this application, make sure you have:
 
 3. **Database Setup**
    
-   Make sure you have PostgreSQL running and create a database for the application.
+   Make sure you have MongoDB running and accessible.
 
 4. **Environment Configuration**
    
@@ -60,7 +63,9 @@ Before running this application, make sure you have:
    
    ```env
    # Database Configuration
-   DATABASE_URL="postgresql://username:password@localhost:5432/talenthive_db"
+   DATABASE_URL="mongodb://localhost:27017/talenthive_db"
+   # Or for MongoDB Atlas:
+   # DATABASE_URL="mongodb+srv://username:password@cluster.mongodb.net/talenthive_db"
    
    # JWT Configuration
    JWT_SECRET="your_super_secret_jwt_key_here"
@@ -77,12 +82,18 @@ Before running this application, make sure you have:
    ```
    
    **Required Environment Variables:**
-   - `DATABASE_URL`: PostgreSQL connection string
+   - `DATABASE_URL`: MongoDB connection string
    - `JWT_SECRET`: Secret key for JWT token signing
    - `STRIPE_SECRET_KEY`: Your Stripe secret key for payment processing
    - `PUBLIC_URL`: Frontend URL for CORS configuration
    - `PORT`: Server port (optional, defaults to 4003)
    - `NODE_ENV`: Environment mode (development/production)
+   
+   **Important:** Always start the backend with:
+   ```bash
+   uvicorn main:app --host 0.0.0.0 --port 4003 --reload
+   ```
+   Or use `npm run dev` if configured properly.
 
 5. **Database Migration**
    ```bash
@@ -292,13 +303,58 @@ If you encounter any issues:
 
 - [TalentHive Frontend](https://github.com/mortiestmorty1/talent-hive-frontend.git) - The frontend React application
 
+## 📝 Recent Updates
+
+### Latest Features (v1.0.1)
+
+1. **Enhanced Review System** ⭐
+   - Fixed `checkOrder()` function to accept both `isCompleted` and `status: 'COMPLETED'`
+   - Reviews now work correctly after order completion
+   - Automatic verified purchase marking
+   - Multi-criteria ratings (skill, communication, timeliness, quality)
+
+2. **Real-time Notifications** 🔔
+   - Socket.io integration for instant messaging
+   - Real-time order status updates
+   - Milestone progress notifications
+   - Dispute activity updates
+
+3. **Order Status Management** 📊
+   - Synchronizes `status` and `isCompleted` fields
+   - Proper workflow: IN_PROGRESS → PENDING_COMPLETION → COMPLETED
+   - Buyer approval workflow for order completion
+   - Status tracking for both gigs and jobs
+
+### Technical Improvements
+
+**Review Validation:**
+```javascript
+// Now accepts EITHER condition
+where: {
+  buyerId: userId,
+  gigId: gigId,
+  OR: [
+    { isCompleted: true },
+    { status: 'COMPLETED' }
+  ]
+}
+```
+
+**Order Status Sync:**
+When order is marked as COMPLETED, both fields are updated:
+- `status: 'COMPLETED'`
+- `isCompleted: true`
+
+This ensures backward compatibility and proper review access.
+
 ## 📝 Important Notes
 
-- **Database**: Make sure PostgreSQL is running and accessible
+- **Database**: Make sure MongoDB is running and accessible
 - **Environment Variables**: Never commit your `.env` file to version control
 - **Stripe Keys**: Use test keys for development, live keys for production
 - **File Uploads**: The `uploads/` directory is excluded from git
 - **CORS**: Configure `PUBLIC_URL` to match your frontend domain
+- **Server Start**: Use `uvicorn main:app --host 0.0.0.0 --port 4003 --reload` or configured npm scripts
 
 ---
 

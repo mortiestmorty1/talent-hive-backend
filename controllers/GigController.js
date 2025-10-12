@@ -410,7 +410,10 @@ const checkOrder = async (userId, gigId) => {
       where: {
         buyerId: userId,
         gigId: gigId,
-        isCompleted: true,
+        OR: [
+          { isCompleted: true },
+          { status: 'COMPLETED' }
+        ]
       },
     });
     return hasUserOrderedGig;

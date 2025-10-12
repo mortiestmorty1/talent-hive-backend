@@ -551,10 +551,12 @@ export const updateOrderStatus = async (req, res) => {
     }
 
     // Update order status
+    // Also set isCompleted to true when status is COMPLETED for backward compatibility
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: { 
-        status: status
+        status: status,
+        isCompleted: status === 'COMPLETED' ? true : undefined
       },
       include: {
         gig: {

@@ -441,23 +441,54 @@ export const addReview = async (req, res, next) => {
   try {
     if (req.userId && req.params.gigId) {
       if (await checkOrder(req.userId, req.params.gigId)) {
-        if (req.body.reviewText && (req.body.rating || req.body.overallRating)) {
-          const rating = req.body.rating ? parseInt(req.body.rating) : undefined;
-          const skillSpecificRating = req.body.skillSpecificRating ? parseInt(req.body.skillSpecificRating) : undefined;
-          const communicationRating = req.body.communicationRating ? parseInt(req.body.communicationRating) : undefined;
-          const timelinessRating = req.body.timelinessRating ? parseInt(req.body.timelinessRating) : undefined;
-          const qualityRating = req.body.qualityRating ? parseInt(req.body.qualityRating) : undefined;
-          const overall = req.body.overallRating
-            ? parseInt(req.body.overallRating)
-            : Math.round(
-                [skillSpecificRating, communicationRating, timelinessRating, qualityRating]
-                  .filter((v) => typeof v === "number")
-                  .reduce((a, b, _, arr) => a + b) / Math.max(1, [skillSpecificRating, communicationRating, timelinessRating, qualityRating].filter((v) => typeof v === "number").length)
-              );
+        // Check if user has already reviewed this gig
+        const existingReview = await prisma.reviews.findFirst({
+          where: {
+            reviewerId: req.userId,
+            gigId: req.params.gigId
+          }
+        });
+
+        if (existingReview) {
+          return res.status(400).send("You have already reviewed this gig.");
+        }
+
+        // Validate that we have either reviewText or individual ratings
+        const hasReviewText = req.body.reviewText && req.body.reviewText.trim().length > 0;
+        const hasIndividualRatings = req.body.skillSpecificRating || req.body.communicationRating || req.body.timelinessRating || req.body.qualityRating;
+
+        if (!hasReviewText && !hasIndividualRatings) {
+          return res.status(400).send("Review text or ratings are required.");
+        }
+
+        // Parse and validate ratings (1-5 scale)
+        const validateRating = (rating) => {
+          const parsed = parseInt(rating);
+          return isNaN(parsed) || parsed < 1 || parsed > 5 ? undefined : parsed;
+        };
+
+        const skillSpecificRating = validateRating(req.body.skillSpecificRating);
+        const communicationRating = validateRating(req.body.communicationRating);
+        const timelinessRating = validateRating(req.body.timelinessRating);
+        const qualityRating = validateRating(req.body.qualityRating);
+
+        // Calculate overall rating from individual ratings if available
+        let overall;
+        const validRatings = [skillSpecificRating, communicationRating, timelinessRating, qualityRating].filter(r => r !== undefined);
+
+        if (validRatings.length > 0) {
+          overall = Math.round(validRatings.reduce((a, b) => a + b, 0) / validRatings.length);
+        } else if (req.body.overallRating) {
+          overall = validateRating(req.body.overallRating);
+        }
+
+        if (!overall) {
+          return res.status(400).send("At least one valid rating is required.");
+        }
 
           const newReview = await prisma.reviews.create({
             data: {
-              rating: rating ?? overall,
+              rating: overall,
               overallRating: overall,
               skillSpecificRating,
               communicationRating,
@@ -478,9 +509,8 @@ export const addReview = async (req, res, next) => {
         }
 
         return res.status(400).send("ReviewText and Rating is required.");
+        return res.status(400).send("You have not ordered this gig.");
       }
-      return res.status(400).send("You have not ordered this gig.");
-    }
   } catch (err) {
     console.log(err);
     return res.status(500).send("Internal Server Error");

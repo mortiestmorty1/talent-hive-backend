@@ -229,14 +229,20 @@ export const browseAllJobs = async (req, res) => {
       }
     }
 
-    const jobs = await prisma.jobPosting.findMany({ 
+    const jobs = await prisma.jobPosting.findMany({
       where: whereCondition,
       orderBy: { createdAt: "desc" },
       include: {
         client: {
           select: {
+            id: true,
             fullName: true,
             username: true
+          }
+        },
+        _count: {
+          select: {
+            applications: true
           }
         }
       }
@@ -270,8 +276,14 @@ export const getAllJobs = async (req, res) => {
       include: {
         client: {
           select: {
+            id: true,
             fullName: true,
             username: true
+          }
+        },
+        _count: {
+          select: {
+            applications: true
           }
         }
       }
@@ -455,8 +467,14 @@ export const searchJobs = async (req, res) => {
       include: {
         client: {
           select: {
+            id: true,
             fullName: true,
             username: true
+          }
+        },
+        _count: {
+          select: {
+            applications: true
           }
         }
       }
@@ -514,7 +532,7 @@ export const getJobApplications = async (req, res) => {
       }
     });
     
-    return res.status(200).json(applications);
+    return res.status(200).json({ applications });
   } catch (error) {
     console.error("Error in getJobApplications:", error);
     return res.status(500).send("Internal Server Error");
@@ -807,15 +825,39 @@ export const addJobReview = async (req, res) => {
       return res.status(400).send("You have already reviewed this job");
     }
     
-    if (!req.body.reviewText || !req.body.overallRating) {
-      return res.status(400).send("Review text and overall rating are required");
+    // Validate that we have either reviewText or individual ratings
+    const hasReviewText = req.body.reviewText && req.body.reviewText.trim().length > 0;
+    const hasIndividualRatings = req.body.skillSpecificRating || req.body.communicationRating || req.body.timelinessRating || req.body.qualityRating;
+    const hasOverallRating = req.body.overallRating;
+
+    if (!hasReviewText && !hasIndividualRatings && !hasOverallRating) {
+      return res.status(400).send("Review text or ratings are required.");
     }
-    
-    const rating = parseInt(req.body.overallRating);
-    const skillSpecificRating = req.body.skillSpecificRating ? parseInt(req.body.skillSpecificRating) : undefined;
-    const communicationRating = req.body.communicationRating ? parseInt(req.body.communicationRating) : undefined;
-    const timelinessRating = req.body.timelinessRating ? parseInt(req.body.timelinessRating) : undefined;
-    const qualityRating = req.body.qualityRating ? parseInt(req.body.qualityRating) : undefined;
+
+    // Parse and validate ratings (1-5 scale)
+    const validateRating = (rating) => {
+      const parsed = parseInt(rating);
+      return isNaN(parsed) || parsed < 1 || parsed > 5 ? undefined : parsed;
+    };
+
+    const overallRating = validateRating(req.body.overallRating);
+    const skillSpecificRating = validateRating(req.body.skillSpecificRating);
+    const communicationRating = validateRating(req.body.communicationRating);
+    const timelinessRating = validateRating(req.body.timelinessRating);
+    const qualityRating = validateRating(req.body.qualityRating);
+
+    // Calculate overall rating from individual ratings if overall rating not provided
+    let rating = overallRating;
+    if (!rating) {
+      const validRatings = [skillSpecificRating, communicationRating, timelinessRating, qualityRating].filter(r => r !== undefined);
+      if (validRatings.length > 0) {
+        rating = Math.round(validRatings.reduce((a, b) => a + b, 0) / validRatings.length);
+      }
+    }
+
+    if (!rating) {
+      return res.status(400).send("At least one valid rating is required.");
+    }
     
     const newReview = await prisma.reviews.create({
       data: {

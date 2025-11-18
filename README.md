@@ -53,11 +53,20 @@ Before running this application, make sure you have:
    yarn install
    ```
 
-3. **Database Setup**
+3. **Generate Prisma Client**
+   
+   After installing dependencies, you must generate the Prisma client:
+   ```bash
+   npx prisma generate
+   ```
+   
+   **Important:** This step is required on every new machine/clone. The Prisma client must be generated before running the server.
+
+4. **Database Setup**
    
    Make sure you have MongoDB running and accessible.
 
-4. **Environment Configuration**
+5. **Environment Configuration**
    
    Create a `.env` file in the root directory with the following variables:
    
@@ -95,17 +104,19 @@ Before running this application, make sure you have:
    ```
    Or use `npm run dev` if configured properly.
 
-5. **Database Migration**
+6. **Database Migration**
    ```bash
    npm run db:push
    ```
+   
+   This will sync your Prisma schema with your MongoDB database.
 
-6. **Seed Database (Optional)**
+7. **Seed Database (Optional)**
    ```bash
    npm run db:seed
    ```
 
-7. **Start the server**
+8. **Start the server**
    ```bash
    # Development mode with auto-reload
    npm run dev
@@ -158,6 +169,7 @@ server/
 - `npm run dev` - Start development server with nodemon
 - `npm run db:push` - Push database schema changes
 - `npm run db:seed` - Seed database with initial data
+- `postinstall` - Automatically runs `prisma generate` after `npm install`
 
 ## 🗄️ Database Schema
 
@@ -290,6 +302,76 @@ To test the API endpoints:
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Troubleshooting
+
+### Common Errors and Solutions
+
+#### Error: `@prisma/client did not initialize yet`
+
+**Problem:** This error occurs when you try to run the server without generating the Prisma client first.
+
+**Solution:**
+```bash
+# Step 1: Make sure you're in the server directory
+cd server
+
+# Step 2: Generate the Prisma client
+npx prisma generate
+
+# Step 3: Now you can run the server
+npm run dev
+```
+
+**Note:** With the updated `package.json`, running `npm install` will automatically run `prisma generate` via the `postinstall` script. However, if you encounter this error, manually run `npx prisma generate`.
+
+#### Error: `Cannot find module` or `Module not found`
+
+**Solution:**
+```bash
+# Delete node_modules and package-lock.json
+rm -rf node_modules package-lock.json
+
+# Reinstall dependencies
+npm install
+
+# Generate Prisma client
+npx prisma generate
+```
+
+#### Error: Database connection failed
+
+**Solution:**
+1. Verify MongoDB is running:
+   ```bash
+   # Check if MongoDB is running (varies by OS)
+   # Windows: Check Services
+   # Mac/Linux: sudo systemctl status mongod
+   ```
+
+2. Check your `.env` file has the correct `DATABASE_URL`:
+   ```env
+   DATABASE_URL="mongodb://localhost:27017/talenthive_db"
+   ```
+
+3. Test the connection:
+   ```bash
+   npx prisma db push
+   ```
+
+#### Error: Port already in use
+
+**Solution:**
+1. Change the `PORT` in your `.env` file
+2. Or kill the process using the port:
+   ```bash
+   # Windows PowerShell
+   netstat -ano | findstr :4003
+   taskkill /PID <PID> /F
+   
+   # Mac/Linux
+   lsof -ti:4003 | xargs kill
+   ```
 
 ## 🆘 Support
 

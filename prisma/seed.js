@@ -258,6 +258,18 @@ async function createReviews(gigs, orders) {
   const buyersById = new Map();
   for (const o of orders) buyersById.set(o.id, o.buyerId);
 
+  // Define skill mappings for different gig categories
+  const categorySkills = {
+    'Web Development': ['React', 'Node.js', 'JavaScript', 'MongoDB', 'CSS', 'HTML'],
+    'Graphic Design': ['Photoshop', 'Illustrator', 'UI/UX', 'Design', 'Typography'],
+    'Writing & Translation': ['Writing', 'SEO', 'Content Creation', 'Editing'],
+    'Digital Marketing': ['SEO', 'Social Media', 'Analytics', 'Marketing'],
+    'Video & Animation': ['Video Editing', 'After Effects', 'Animation', 'Motion Graphics'],
+    'Data': ['Python', 'Data Analysis', 'Excel', 'SQL'],
+    'Music & Audio': ['Audio Mixing', 'Sound Design', 'Music Production'],
+    'Programming & Tech': ['Python', 'JavaScript', 'API Development', 'Backend']
+  };
+
   for (const gig of gigs) {
     const related = orders.filter((o) => o.gigId === gig.id && o.isCompleted);
     for (const ord of related.slice(0, 2)) {
@@ -267,15 +279,26 @@ async function createReviews(gigs, orders) {
         timelinessRating: rand(3, 5),
         qualityRating: rand(3, 5),
       };
+      
+      // Create skillRatings object (new format) based on gig category
+      const availableSkills = categorySkills[gig.category] || ['General'];
+      const numSkillsToRate = rand(2, Math.min(4, availableSkills.length));
+      const selectedSkills = shuffleArray([...availableSkills]).slice(0, numSkillsToRate);
+      const skillRatings = {};
+      selectedSkills.forEach(skill => {
+        skillRatings[skill] = rand(3, 5); // Rate each skill 3-5 stars
+      });
+      
       const overall = Math.round((ratings.skillSpecificRating + ratings.communicationRating + ratings.timelinessRating + ratings.qualityRating) / 4);
       await prisma.reviews.create({
         data: {
           rating: overall,
           overallRating: overall,
           ...ratings,
-          skillCategory: pick(['Frontend','Backend','Design']),
+          skillCategory: pick(['Frontend','Backend','Design']), // Legacy support
+          skillRatings: skillRatings, // New format with multiple skills
           verifiedPurchase: true,
-          comment: 'Great collaboration!',
+          comment: 'Great collaboration! Excellent work quality and communication.',
           reviewer: { connect: { id: buyersById.get(ord.id) } },
           gig: { connect: { id: gig.id } },
         },

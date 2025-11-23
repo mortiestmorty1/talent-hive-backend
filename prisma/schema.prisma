@@ -182,6 +182,7 @@ model Reviews {
   qualityRating       Int?
   overallRating       Int?
   skillCategory       String?
+  skillRatings        Json?  // Map of skill names to ratings: {"React": 5, "Node.js": 4}
   verifiedPurchase    Boolean? @default(false)
   comment    String?
   gig        Gig?     @relation(fields: [gigId], references: [id])

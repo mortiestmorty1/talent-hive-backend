@@ -169,6 +169,7 @@ server/
 - `npm run dev` - Start development server with nodemon
 - `npm run db:push` - Push database schema changes
 - `npm run db:seed` - Seed database with initial data
+- `npm run db:add-reviews` - Add sample reviews with skill ratings
 - `postinstall` - Automatically runs `prisma generate` after `npm install`
 
 ## 🗄️ Database Schema
@@ -394,6 +395,8 @@ If you encounter any issues:
    - Reviews now work correctly after order completion
    - Automatic verified purchase marking
    - Multi-criteria ratings (skill, communication, timeliness, quality)
+   - **Skill-based ratings**: Rate individual skills from completed work
+   - **Rating-based matching**: Freelancers matched based on skill ratings from reviews
 
 2. **Real-time Notifications** 🔔
    - Socket.io integration for instant messaging
@@ -406,6 +409,12 @@ If you encounter any issues:
    - Proper workflow: IN_PROGRESS → PENDING_COMPLETION → COMPLETED
    - Buyer approval workflow for order completion
    - Status tracking for both gigs and jobs
+
+4. **Rating-Based Matching System** 🎯
+   - Matches freelancers to jobs based on skill ratings from completed work
+   - Considers both gig reviews and job reviews
+   - Calculates average skill ratings per freelancer
+   - Weights by number of reviews for reliability
 
 ### Technical Improvements
 
@@ -428,6 +437,51 @@ When order is marked as COMPLETED, both fields are updated:
 - `isCompleted: true`
 
 This ensures backward compatibility and proper review access.
+
+**Rating-Based Matching:**
+The matching service now:
+- Fetches reviews for freelancers' completed gigs (where `gig.userId === freelancer.id`)
+- Fetches reviews for freelancers' completed jobs (where `job.acceptedFreelancerId === freelancer.id`)
+- Calculates skill ratings from all reviews
+- Matches based on proven performance, not just keywords
+
+## 🎯 Skill Rating System
+
+### Adding Reviews with Skill Ratings
+
+**Quick Command:**
+```bash
+cd server
+npm run db:add-reviews
+```
+
+This will:
+- Find completed orders and jobs
+- Add reviews with skill-specific ratings
+- Help test the rating-based matching system
+
+**How to Rate Skills:**
+
+1. **Complete a Project**: Wait for order/job to be marked as "COMPLETED"
+2. **Navigate to Review Form**: 
+   - For Gigs: Go to `/gig/[gigId]` and scroll to "Leave a Review"
+   - For Jobs: Go to `/jobs/[jobId]` and find the review section
+3. **Rate Skills**: 
+   - Rate each required skill from 1-5 stars
+   - Rate communication, timeliness, and quality
+   - Add comments about the experience
+4. **Submit**: Your ratings are saved and used for matching!
+
+**Example:**
+- Job Required: React, Node.js, MongoDB
+- Your Ratings: React ⭐⭐⭐⭐⭐, Node.js ⭐⭐⭐⭐, MongoDB ⭐⭐⭐⭐⭐
+- These ratings are used to match freelancers to future jobs requiring these skills
+
+### Database Scripts
+
+- `npm run db:seed` - Seed database with initial data
+- `npm run db:add-reviews` - Add sample reviews with skill ratings
+- `npm run db:push` - Push schema changes to database
 
 ## 📝 Important Notes
 

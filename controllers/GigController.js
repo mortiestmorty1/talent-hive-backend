@@ -456,8 +456,9 @@ export const addReview = async (req, res, next) => {
         // Validate that we have either reviewText or individual ratings
         const hasReviewText = req.body.reviewText && req.body.reviewText.trim().length > 0;
         const hasIndividualRatings = req.body.skillSpecificRating || req.body.communicationRating || req.body.timelinessRating || req.body.qualityRating;
+        const hasSkillRatings = req.body.skillRatings && typeof req.body.skillRatings === 'object' && Object.keys(req.body.skillRatings).length > 0;
 
-        if (!hasReviewText && !hasIndividualRatings) {
+        if (!hasReviewText && !hasIndividualRatings && !hasSkillRatings) {
           return res.status(400).send("Review text or ratings are required.");
         }
 
@@ -472,9 +473,31 @@ export const addReview = async (req, res, next) => {
         const timelinessRating = validateRating(req.body.timelinessRating);
         const qualityRating = validateRating(req.body.qualityRating);
 
+        // Process skillRatings (new format: object mapping skill names to ratings)
+        let skillRatings = null;
+        if (req.body.skillRatings && typeof req.body.skillRatings === 'object') {
+          skillRatings = {};
+          Object.entries(req.body.skillRatings).forEach(([skillName, rating]) => {
+            const validated = validateRating(rating);
+            if (validated) {
+              skillRatings[String(skillName).trim()] = validated;
+            }
+          });
+          // Only set if we have at least one valid skill rating
+          if (Object.keys(skillRatings).length === 0) {
+            skillRatings = null;
+          }
+        }
+
         // Calculate overall rating from individual ratings if available
         let overall;
         const validRatings = [skillSpecificRating, communicationRating, timelinessRating, qualityRating].filter(r => r !== undefined);
+        
+        // If skillRatings exist, include them in overall calculation
+        if (skillRatings && Object.keys(skillRatings).length > 0) {
+          const skillRatingValues = Object.values(skillRatings);
+          validRatings.push(...skillRatingValues);
+        }
 
         if (validRatings.length > 0) {
           overall = Math.round(validRatings.reduce((a, b) => a + b, 0) / validRatings.length);
@@ -495,6 +518,7 @@ export const addReview = async (req, res, next) => {
               timelinessRating,
               qualityRating,
               skillCategory: req.body.skillCategory,
+              skillRatings: skillRatings,
               verifiedPurchase: true,
               comment: req.body.reviewText,
               reviewer: { connect: { id: req.userId } },

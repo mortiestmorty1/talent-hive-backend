@@ -15,6 +15,7 @@ import {
   getFreelancerJobOrders,
   completeJob,
   addJobReview,
+  checkJobReview,
   getFreelancerCompletedJobs,
   createJobPayment,
   confirmJobPayment,
@@ -45,6 +46,7 @@ jobRoutes.put("/milestones/:milestoneId", verifyToken, updateMilestoneStatus);
 // GET routes with specific paths
 jobRoutes.get("/get/:jobId", optionalAuth, getJobById); // Public route with optional auth
 jobRoutes.get("/matches/:jobId", verifyToken, getJobTopMatches);
+jobRoutes.get("/check-review/:jobId", verifyToken, checkJobReview);
 
 // Dynamic routes last (less specific)
 jobRoutes.get("/:jobId/applications", verifyToken, getJobApplications);

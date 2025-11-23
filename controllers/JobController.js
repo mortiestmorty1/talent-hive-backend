@@ -82,11 +82,16 @@ export const getJobTopMatches = async (req, res) => {
   try {
     const { jobId } = req.params;
     const { limit } = req.query;
+    
+    if (!jobId) {
+      return res.status(400).json({ error: "Job ID is required" });
+    }
+    
     const top = await getTopMatches({ jobId, limit: limit ? Number(limit) : 10 });
     return res.status(200).json(top);
   } catch (error) {
-    console.error(error);
-    return res.status(500).send("Internal Server Error");
+    console.error("Error in getJobTopMatches:", error);
+    return res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 };
 
@@ -102,19 +107,57 @@ export const getJobById = async (req, res) => {
     const job = await prisma.jobPosting.findUnique({ 
       where: { id: jobId },
       include: {
-        client: true,
+        client: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            email: true,
+            profileImage: true
+          }
+        },
         applications: {
           include: {
-            freelancer: true
+            freelancer: {
+              select: {
+                id: true,
+                username: true,
+                fullName: true,
+                email: true,
+                profileImage: true
+              }
+            }
           }
         },
         reviews: {
           include: {
-            reviewer: true
+            reviewer: {
+              select: {
+                id: true,
+                username: true,
+                fullName: true,
+                profileImage: true
+              }
+            }
           }
         }
       }
     });
+    
+    // If there's an accepted freelancer, fetch their details
+    if (job && job.acceptedFreelancerId) {
+      const acceptedFreelancer = await prisma.user.findUnique({
+        where: { id: job.acceptedFreelancerId },
+        select: {
+          id: true,
+          username: true,
+          fullName: true,
+          email: true,
+          profileImage: true
+        }
+      });
+      job.acceptedFreelancer = acceptedFreelancer;
+    }
     
     if (!job) {
       return res.status(404).json({ error: "Job not found" });
@@ -798,6 +841,39 @@ const checkJobCompletion = async (userId, jobId) => {
   }
 };
 
+// Check if user can review a job
+export const checkJobReview = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    if (!req.userId || !jobId) {
+      return res.status(400).json({ hasUserCompletedJob: false, hasReviewed: false });
+    }
+
+    // Check if job is completed and user is the client
+    const canReview = await checkJobCompletion(req.userId, jobId);
+    
+    if (!canReview) {
+      return res.status(200).json({ hasUserCompletedJob: false, hasReviewed: false });
+    }
+
+    // Check if user has already reviewed this job
+    const existingReview = await prisma.reviews.findFirst({
+      where: {
+        jobId: jobId,
+        reviewerId: req.userId
+      }
+    });
+
+    return res.status(200).json({ 
+      hasUserCompletedJob: true, 
+      hasReviewed: !!existingReview 
+    });
+  } catch (err) {
+    console.error("Error in checkJobReview:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 // Add review for a job
 export const addJobReview = async (req, res) => {
   try {
@@ -829,8 +905,9 @@ export const addJobReview = async (req, res) => {
     const hasReviewText = req.body.reviewText && req.body.reviewText.trim().length > 0;
     const hasIndividualRatings = req.body.skillSpecificRating || req.body.communicationRating || req.body.timelinessRating || req.body.qualityRating;
     const hasOverallRating = req.body.overallRating;
+    const hasSkillRatings = req.body.skillRatings && typeof req.body.skillRatings === 'object' && Object.keys(req.body.skillRatings).length > 0;
 
-    if (!hasReviewText && !hasIndividualRatings && !hasOverallRating) {
+    if (!hasReviewText && !hasIndividualRatings && !hasOverallRating && !hasSkillRatings) {
       return res.status(400).send("Review text or ratings are required.");
     }
 
@@ -846,10 +923,33 @@ export const addJobReview = async (req, res) => {
     const timelinessRating = validateRating(req.body.timelinessRating);
     const qualityRating = validateRating(req.body.qualityRating);
 
+    // Process skillRatings (new format: object mapping skill names to ratings)
+    let skillRatings = null;
+    if (req.body.skillRatings && typeof req.body.skillRatings === 'object') {
+      skillRatings = {};
+      Object.entries(req.body.skillRatings).forEach(([skillName, rating]) => {
+        const validated = validateRating(rating);
+        if (validated) {
+          skillRatings[String(skillName).trim()] = validated;
+        }
+      });
+      // Only set if we have at least one valid skill rating
+      if (Object.keys(skillRatings).length === 0) {
+        skillRatings = null;
+      }
+    }
+
     // Calculate overall rating from individual ratings if overall rating not provided
     let rating = overallRating;
     if (!rating) {
       const validRatings = [skillSpecificRating, communicationRating, timelinessRating, qualityRating].filter(r => r !== undefined);
+      
+      // If skillRatings exist, include them in overall calculation
+      if (skillRatings && Object.keys(skillRatings).length > 0) {
+        const skillRatingValues = Object.values(skillRatings);
+        validRatings.push(...skillRatingValues);
+      }
+      
       if (validRatings.length > 0) {
         rating = Math.round(validRatings.reduce((a, b) => a + b, 0) / validRatings.length);
       }
@@ -868,6 +968,7 @@ export const addJobReview = async (req, res) => {
         timelinessRating,
         qualityRating,
         skillCategory: req.body.skillCategory,
+        skillRatings: skillRatings,
         verifiedPurchase: true,
         comment: req.body.reviewText,
         reviewer: { connect: { id: req.userId } },
